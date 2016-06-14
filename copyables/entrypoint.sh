@@ -47,25 +47,28 @@ done
 
 if [ -z ${L2TP_ENABLED+x} ]
 then
+  echo "# >>> L2TP_IPsec module disabled <<<"
   /opt/vpncmd localhost /SERVER /CSV /CMD IPsecEnable no /L2TP:no /L2TPRAW:no /ETHERIP:no /DEFAULTHUB:DEFAULT
 else
-  echo "# >>> L2TP_IPsec module is enabled <<<"
+  echo "# >>> L2TP_IPsec module enabled <<<"
   /opt/vpncmd localhost /SERVER /CSV /CMD IPsecEnable /L2TP:yes /L2TPRAW:yes /ETHERIP:no /PSK:${PSK} /DEFAULTHUB:DEFAULT
 fi
 
 if [ -z ${OPENVPN_ENABLED+x} ]
 then
+  echo "# >>> OpenVPN module disabled <<<"
   /opt/vpncmd localhost /SERVER /CSV /CMD OpenVpnEnable no /PORTS:1194
 else
-  echo "# >>> OpenVPN module is enabled <<<"
+  echo "# >>> OpenVPN module enabled <<<"
   /opt/vpncmd localhost /SERVER /CSV /CMD OpenVpnEnable yes /PORTS:1194
 fi
 
 if [ -z ${SSTP_ENABLED+x} ]
 then
+  echo "# >>> SSTP module disabled <<<"
   /opt/vpncmd localhost /SERVER /CSV /CMD SstpEnable no
 else
-  echo "# >>> SSTP module is enabled <<<"
+  echo "# >>> SSTP module enabled <<<"
   /opt/vpncmd localhost /SERVER /CSV /CMD SstpEnable yes
 fi
 
