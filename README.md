@@ -11,9 +11,9 @@ format has changed as a result.
    (Note: they don't have any other branches or tags.)
    - with [a local patch to set AES-256-CBC as OpenVPN default cipher](https://github.com/siomiz/SoftEtherVPN/tree/master/copyables/usr/local/src/AES-256-CBC.patch).
 
-    $ docker run -d --cap-add NET_ADMIN -e L2TP_ENABLED -e OPENVPN_ENABLED -p \
-    500:500/udp -p 4500:4500/udp -p 1701:1701/tcp -p 1194:1194/udp \
-    fernandezcuesta/softethervpn
+    $ docker run -d --cap-add NET_ADMIN -e L2TP_ENABLED= -e OPENVPN_ENABLED= \
+    -p 500:500/udp -p 4500:4500/udp -p 1701:1701/tcp \
+    -p 1194:1194/udp fernandezcuesta/softethervpn
 
 Connectivity tested on Android + iOS devices. It seems Android devices do not
 require L2TP server to have port 1701/tcp open.
@@ -25,6 +25,15 @@ Mix and match published ports:
 - `-p 500:500/udp -p 4500:4500/udp -p 1701:1701/tcp` for L2TP/IPSec
 - `-p 1194:1194/udp` for OpenVPN
 - `-p 443:443/tcp` for SSTP
+
+## VPN modules
+
+By default, all are disabled. When passed to the container (even with an
+empty value, such as `-e SSTP_ENABLED=`) it will enable the module.
+
+- `-e L2TP_ENABLED`: Enable L2TP/IPsec VPN server module (L2TP over IPsec)
+- `-e OPENVPN_ENABLED`: Enable OpenVPN clone server (IP over TCP/UDP)
+- `-e SSTP_ENABLED`: Enable MS-SSTP clone server (PPP over HTTPS)
 
 ## Credentials
 
@@ -67,7 +76,7 @@ In order to create additional users, the following command can be executed:
 
 ## OpenVPN ##
 
-`docker run -d --cap-add NET_ADMIN -p 1194:1194/udp fernandezcuesta/softethervpn`
+`docker run -d --cap-add NET_ADMIN -e OPENVPN_ENABLED= -p 1194:1194/udp fernandezcuesta/softethervpn`
 
 The entire log can be saved and used as an `.ovpn` config file (change as
 needed).
