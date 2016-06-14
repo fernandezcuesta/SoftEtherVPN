@@ -24,7 +24,7 @@ then
 else
   PASSWORD=$(cat /dev/urandom | tr -dc '0-9' | fold -w 20 | head -n 1 | sed 's/.\{4\}/&./g;s/.$//;')
   echo \# ${PASSWORD}
-fi  
+fi
 
 printf '# '
 printf '=%.0s' {1..24}
@@ -45,14 +45,32 @@ done
 # About command to grab version number
 /opt/vpncmd localhost /SERVER /CSV /CMD About | head -2 | tail -1 | sed 's/^/# /;'
 
-# enable L2TP_IPsec
-/opt/vpncmd localhost /SERVER /CSV /CMD IPsecEnable /L2TP:yes /L2TPRAW:yes /ETHERIP:no /PSK:${PSK} /DEFAULTHUB:DEFAULT
+if [ -z ${L2TP_ENABLED+x} ]
+then
+  /opt/vpncmd localhost /SERVER /CSV /CMD IPsecEnable no /L2TP:no /L2TPRAW:no /ETHERIP:no /DEFAULTHUB:DEFAULT
+else
+  echo "# >>> L2TP_IPsec module is enabled <<<"
+  /opt/vpncmd localhost /SERVER /CSV /CMD IPsecEnable /L2TP:yes /L2TPRAW:yes /ETHERIP:no /PSK:${PSK} /DEFAULTHUB:DEFAULT
+fi
+
+if [ -z ${OPENVPN_ENABLED+x} ]
+then
+  /opt/vpncmd localhost /SERVER /CSV /CMD OpenVpnEnable no /PORTS:1194
+else
+  echo "# >>> OpenVPN module is enabled <<<"
+  /opt/vpncmd localhost /SERVER /CSV /CMD OpenVpnEnable yes /PORTS:1194
+fi
+
+if [ -z ${SSTP_ENABLED+x} ]
+then
+  /opt/vpncmd localhost /SERVER /CSV /CMD SstpEnable no
+else
+  echo "# >>> SSTP module is enabled <<<"
+  /opt/vpncmd localhost /SERVER /CSV /CMD SstpEnable yes
+fi
 
 # enable SecureNAT
 /opt/vpncmd localhost /SERVER /CSV /HUB:DEFAULT /CMD SecureNatEnable
-
-# enable OpenVPN
-/opt/vpncmd localhost /SERVER /CSV /CMD OpenVpnEnable yes /PORTS:1194
 
 if [[ "*${CERT}*" != "**" && "*${KEY}*" != "**" ]]; then
   # server cert/key pair specified via -e
@@ -91,12 +109,12 @@ cat softether.ovpn
 export PASSWORD='**'
 
 # set password for hub
-HPW=$(cat /dev/urandom | tr -dc 'A-Za-z0-9' | fold -w 16 | head -n 1)
-/opt/vpncmd localhost /SERVER /HUB:DEFAULT /CSV /CMD SetHubPassword ${HPW}
+: ${HUB_PWD:=$(cat /dev/urandom | tr -dc 'A-Za-z0-9' | fold -w 16 | head -n 1)}
+/opt/vpncmd localhost /SERVER /HUB:DEFAULT /CSV /CMD SetHubPassword ${HUB_PWD}
 
 # set password for server
-SPW=$(cat /dev/urandom | tr -dc 'A-Za-z0-9' | fold -w 20 | head -n 1)
-/opt/vpncmd localhost /SERVER /CSV /CMD ServerPasswordSet ${SPW}
+: ${SERVER_PWD:=$(cat /dev/urandom | tr -dc 'A-Za-z0-9' | fold -w 20 | head -n 1)}
+/opt/vpncmd localhost /SERVER /CSV /CMD ServerPasswordSet ${SERVER_PWD}
 
 /opt/vpnserver stop 2>&1 > /dev/null
 

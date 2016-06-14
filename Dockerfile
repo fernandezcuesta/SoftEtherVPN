@@ -1,6 +1,6 @@
 FROM centos:centos7
 
-MAINTAINER Tomohisa Kusano <siomiz@gmail.com>
+MAINTAINER JM Fernández <fernandez.cuesta@gmail.com>
 
 COPY copyables /
 RUN chmod +x /entrypoint.sh /gencert.sh
@@ -12,6 +12,6 @@ WORKDIR /opt
 
 ENTRYPOINT ["/entrypoint.sh"]
 
-EXPOSE 500/udp 4500/udp 1701/tcp 1194/udp
+EXPOSE 500/udp 4500/udp 1701/tcp 1194/udp 443/tcp
 
 CMD ["/usr/local/sbin/run"]

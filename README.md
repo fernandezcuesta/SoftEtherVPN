@@ -1,52 +1,83 @@
 # A simple single-user [SoftEther VPN][1] server Docker image
 
-[![Travis](https://img.shields.io/travis/siomiz/SoftEtherVPN/master.svg?style=flat-square)](https://travis-ci.org/siomiz/SoftEtherVPN)
-
-**Note:** OpenVPN support is enabled on :latest image. STDOUT (`docker log`) format has changed as a result.
+**Note:** OpenVPN support is enabled on `:latest` image. STDOUT (`docker log`)
+format has changed as a result.
 
 ## Setup
- - L2TP/IPSec PSK + OpenVPN
+ - L2TP/IPSec PSK + OpenVPN + SSTP
  - SecureNAT enabled
  - Perfect Forward Secrecy (DHE-RSA-AES256-SHA)
- - make'd from [the official SoftEther VPN GitHub repo][2] master (Note: they don't have any other branches or tags.)
+ - make'd from [the official SoftEther VPN GitHub repo][2] master
+   (Note: they don't have any other branches or tags.)
    - with [a local patch to set AES-256-CBC as OpenVPN default cipher](https://github.com/siomiz/SoftEtherVPN/tree/master/copyables/usr/local/src/AES-256-CBC.patch).
 
-`docker run -d --cap-add NET_ADMIN -p 500:500/udp -p 4500:4500/udp -p 1701:1701/tcp -p 1194:1194/udp siomiz/softethervpn`
+    $ docker run -d --cap-add NET_ADMIN -e L2TP_ENABLED -e OPENVPN_ENABLED -p \
+    500:500/udp -p 4500:4500/udp -p 1701:1701/tcp -p 1194:1194/udp \
+    fernandezcuesta/softethervpn
 
-Connectivity tested on Android + iOS devices. It seems Android devices do not require L2TP server to have port 1701/tcp open.
+Connectivity tested on Android + iOS devices. It seems Android devices do not
+require L2TP server to have port 1701/tcp open.
 
-The above example will accept connections from both L2TP/IPSec and OpenVPN clients at the same time.
+The above example will accept connections from both L2TP/IPSec and OpenVPN
+clients at the same time.
 
 Mix and match published ports: 
 - `-p 500:500/udp -p 4500:4500/udp -p 1701:1701/tcp` for L2TP/IPSec
-- `-p 1194:1194/udp` for OpenVPN.
+- `-p 1194:1194/udp` for OpenVPN
+- `-p 443:443/tcp` for SSTP
 
 ## Credentials
 
 All optional:
 
-- `-e PSK`: Pre-Shared Key (PSK), if not set: "notasecret" (without quotes) by default.
+- `-e PSK`: Pre-Shared Key (PSK), if not set: "notasecret" (without quotes) by
+  default.
 - `-e USERNAME`: if not set a random username ("user[nnnn]") is created.
 - `-e PASSWORD`: if not set a random weak password is created.
+- `-e SERVER_PWD`: if not set a random weak password is created
 
-It only creates a single user account with the above credentials in DEFAULT hub.
-See the docker log for username and password (unless `-e PASSWORD` is set), which *would look like*:
+During run it only automatically creates a single user account with the above
+credentials in DEFAULT hub.
+See the docker log for username and password (unless `-e PASSWORD` is set),
+which *would look like*:
 
     # ========================
     # user6301
     # 2329.2890.3101.2451.9875
     # ========================
-Dots (.) are part of the password. Password will not be logged if specified via `-e PASSWORD`; use `docker inspect` in case you need to see it.
+Dots (.) are part of the password. Password will not be logged if specified via
+`-e PASSWORD`; use `docker inspect` in case you need to see it.
 
-Hub & server are locked down; they are given stronger random passwords which are not logged or displayed.
+By default hub & server are locked down; they are given stronger random passwords
+which are not logged or displayed.
+An alternative is to set environment variables:
+
+- `-e HUB_PWD`: hub authentication
+- `-e SERVER_PWD`: server authentication
+
+In order to create additional users, the following command can be executed:
+
+    $ docker exec -it <CONTAINER_NAME> ./vpncmd localhost /SERVER
+    /PASSWORD:$SERVER_PWD /HUB:DEFAULT /CSV /CMD UserCreate <USER_NAME> \
+    /GROUP:none /REALNAME:none /NOTE:none
+    $ docker exec -it <CONTAINER_NAME> ./vpncmd localhost /SERVER \
+    /PASSWORD:$SERVER_PWD /HUB:DEFAULT /CSV /CMD UserPasswordSet <USER_NAME> \
+    /PASSWORD:<PASSWORD>
+
 
 ## OpenVPN ##
 
-`docker run -d --cap-add NET_ADMIN -p 1194:1194/udp siomiz/softethervpn`
+`docker run -d --cap-add NET_ADMIN -p 1194:1194/udp fernandezcuesta/softethervpn`
 
-The entire log can be saved and used as an `.ovpn` config file (change as needed).
+The entire log can be saved and used as an `.ovpn` config file (change as
+needed).
 
-Server CA certificate will be created automatically at runtime if it's not set. You can supply _a self-signed 1024-bit RSA certificate/key pair_ created locally OR use the `gencert` script described below. Feed the keypair contents via `-e CERT` and `-e KEY` ([use of `--env-file`][3] is recommended). X.509 markers (like `-----BEGIN CERTIFICATE-----`) and any non-BASE64 character (incl. newline) can be omitted and will be ignored.
+Server CA certificate will be created automatically at runtime if it's not set.
+You can supply _a self-signed 1024-bit RSA certificate/key pair_ created
+locally OR use the `gencert` script described below. Feed the keypair contents
+via `-e CERT` and `-e KEY` ([use of `--env-file`][3] is recommended). X.509 
+markers (like `-----BEGIN CERTIFICATE-----`) and any non-BASE64 character
+(incl. newline) can be omitted and will be ignored.
 
 Examples (assuming bash; note the double-quotes `"` and backticks `` ` ``):
 
@@ -56,11 +87,10 @@ Examples (assuming bash; note the double-quotes `"` and backticks `` ` ``):
 
 `env-file` template can be generated by:
 
-`docker run --rm siomiz/softethervpn gencert > /path/to/envlist`
+`docker run --rm fernandezcuesta/softethervpn gencert > /path/to/envlist`
 
-The output will have `CERT` and `KEY` already filled in. Modify `PSK`/`USERNAME`/`PASSWORD`.
-
-Certificate volumes support (like `-v` or `--volumes-from`) will be added at some point...
+The output will have `CERT` and `KEY` already filled in.
+Modify `PSK`/`USERNAME`/`PASSWORD`.
 
 ## License ##
 
@@ -69,4 +99,4 @@ Certificate volumes support (like `-v` or `--volumes-from`) will be added at som
   [1]: https://www.softether.org/
   [2]: https://github.com/SoftEtherVPN/SoftEtherVPN
   [3]: https://docs.docker.com/engine/reference/commandline/run/#set-environment-variables-e-env-env-file
-  [4]: https://github.com/siomiz/SoftEtherVPN/raw/master/LICENSE
+  [4]: https://github.com/fernandezcuesta/SoftEtherVPN/raw/master/LICENSE
